@@ -1,20 +1,19 @@
 package put.cs.idss.ml.weka.lab08;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
-
 import weka.classifiers.Classifier;
 import weka.core.Instance;
 import weka.core.Instances;
 
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+
 public class CompareClassifiers {
 
+    private static final String DATA_SET_NAME = "badges2"; // badges2 / credit-a-mod / credit-a
+
     public CompareClassifiers() {
-        // TODO Auto-generated constructor stub
+
     }
 
     public static double roundDouble(double x, int n) {
@@ -32,21 +31,10 @@ public class CompareClassifiers {
         classifiers.add(new weka.classifiers.bayes.NaiveBayes());
         classifiers.add(new weka.classifiers.functions.Logistic());
 
-        String dataset = "badges2"; // badges2 / credit-a-mod / credit-a
-        double partOfDataset = 1.0; // part of randomized train set (0 .. 1)
-        long seed = 1;
-
-        BufferedReader readerTrain = new BufferedReader(new FileReader("data/"+dataset+"-train.arff"));
-        Instances trainSetTmp = new Instances(readerTrain);
-        int newTrainSetSize = (int)((double)trainSetTmp.numInstances() * partOfDataset);
-        trainSetTmp.randomize(new Random(seed));
-        Instances trainSet = new Instances(trainSetTmp, 0, newTrainSetSize);
-        readerTrain.close();
-
-        BufferedReader readerTest = new BufferedReader(new FileReader("data/"+dataset+"-test.arff"));
-        Instances testSet = new Instances(readerTest);
-        testSet.randomize(new Random(seed));
-        readerTest.close();
+        double partOfDataSet = 1.0; // part of randomized train set (0 .. 1)
+        DataProvider dataProvider = new DataProvider(DATA_SET_NAME);
+        Instances trainSet = dataProvider.getTrainSet(partOfDataSet);
+        Instances testSet = dataProvider.getTestSet();
 
         if (trainSet.classIndex() == -1) trainSet.setClassIndex(trainSet.numAttributes() - 1);
         if (testSet.classIndex() == -1) testSet.setClassIndex(testSet.numAttributes() - 1);
@@ -55,8 +43,8 @@ public class CompareClassifiers {
         System.out.println(" - train set size: " + trainSet.numInstances());
         System.out.println(" - test set size:  " + testSet.numInstances());
 
-        HashMap<String,Long> trainingTimes = new HashMap<>();
-        HashMap<String,Long> testingTimes = new HashMap<>();
+        HashMap<String, Long> trainingTimes = new HashMap<>();
+        HashMap<String, Long> testingTimes = new HashMap<>();
 
         for (Classifier classifier : classifiers) {
             String classifierName = classifier.getClass().getSimpleName();
@@ -68,8 +56,8 @@ public class CompareClassifiers {
             trainingTimes.put(classifierName, trainingTime);
         }
 
-        HashMap<String,Double> loss01 = new HashMap<>();
-        HashMap<String,Double> squaredError = new HashMap<>();
+        HashMap<String, Double> loss01 = new HashMap<>();
+        HashMap<String, Double> squaredError = new HashMap<>();
 
         double sum = testSet.numInstances();
         for (Classifier classifier : classifiers) {
@@ -86,7 +74,7 @@ public class CompareClassifiers {
                 double _loss01 = truth == prediction ? 0 : 1;
                 double _squaredError = Math.pow(1.0 - distribution[truth], 2);
 
-                if(loss01.containsKey(classifierName)) {
+                if (loss01.containsKey(classifierName)) {
                     _loss01 += loss01.get(classifierName);
                     _squaredError += squaredError.get(classifierName);
                 }

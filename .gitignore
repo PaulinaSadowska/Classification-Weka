@@ -1,0 +1,8 @@
+# Package Files #
+*.jar
+
+*.iml
+.idea
+out
+lib
+.DS_Store
