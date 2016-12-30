@@ -9,7 +9,7 @@ import java.util.HashMap;
 
 public class CompareClassifiers {
 
-    private static final String DATA_SET_NAME = "spambase"; // badges2 / credit-a-mod / credit-a
+    private static final String DATA_SET_NAME = "badges2"; // badges2 / credit-a-mod / credit-a
 
     static ArrayList<Classifier> classifiers;
 
@@ -35,8 +35,12 @@ public class CompareClassifiers {
             Instances testSet = dataProvider.getTestSet();
             String classifierName = classifier.getClass().getSimpleName();
 
+
             for (int j = 1; j < 100; j+=1) {
                 double partOfDataSet = 0.01*j; // part of randomized train set (0 .. 1)
+
+                loss01.remove(classifierName);
+                squaredError.remove(classifierName);
 
                 ClassifierTrainer classifierTrainer = new ClassifierTrainer(dataProvider, partOfDataSet);
                 classifierTrainer.buildClassifier(classifier);
