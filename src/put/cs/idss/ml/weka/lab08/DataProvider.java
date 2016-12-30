@@ -15,31 +15,49 @@ public class DataProvider {
     private static final String DATA_FOLDER_PATH = "data/";
     private String dataSetName;
     private long seed;
+    private Instances trainSet;
+    private Instances testSet;
 
-    public DataProvider(String dataSetName){
+    private int trainSetSize;
+
+    public DataProvider(String dataSetName) {
         this(dataSetName, 1);
     }
 
-    public DataProvider(String dataSetName, long seed){
+    public DataProvider(String dataSetName, long seed) {
         this.dataSetName = dataSetName;
         this.seed = seed;
     }
 
+    private void setClassIndex(Instances set) {
+        if (set.classIndex() == -1) set.setClassIndex(set.numAttributes() - 1);
+    }
+
     public Instances getTrainSet(double partOfDataSet) throws IOException {
-        BufferedReader readerTrain = new BufferedReader(new FileReader(DATA_FOLDER_PATH+dataSetName+"-train.arff"));
-        Instances trainSetTmp = new Instances(readerTrain);
-        int newTrainSetSize = (int)((double)trainSetTmp.numInstances() * partOfDataSet);
-        trainSetTmp.randomize(new Random(seed));
-        Instances trainSet = new Instances(trainSetTmp, 0, newTrainSetSize);
-        readerTrain.close();
-        return trainSet;
+        if(trainSet==null) {
+            BufferedReader readerTrain = new BufferedReader(new FileReader(DATA_FOLDER_PATH + dataSetName + "-train.arff"));
+            trainSet = new Instances(readerTrain);
+            readerTrain.close();
+            trainSet.randomize(new Random(seed));
+        }
+        trainSetSize = (int) ((double) trainSet.numInstances() * partOfDataSet);
+        Instances smallerTrainSet = new Instances(trainSet, 0, trainSetSize);
+        setClassIndex(smallerTrainSet);
+        return smallerTrainSet;
+    }
+
+    public int getTrainSetSize(){
+        return trainSetSize;
     }
 
     public Instances getTestSet() throws IOException {
-        BufferedReader readerTest = new BufferedReader(new FileReader(DATA_FOLDER_PATH+dataSetName+"-test.arff"));
-        Instances testSet = new Instances(readerTest);
-        testSet.randomize(new Random(seed));
-        readerTest.close();
+        if (testSet == null) {
+            BufferedReader readerTest = new BufferedReader(new FileReader(DATA_FOLDER_PATH + dataSetName + "-test.arff"));
+            testSet = new Instances(readerTest);
+            testSet.randomize(new Random(seed));
+            readerTest.close();
+            setClassIndex(testSet);
+        }
         return testSet;
     }
 

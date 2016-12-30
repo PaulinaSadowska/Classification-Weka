@@ -4,101 +4,65 @@ import weka.classifiers.Classifier;
 import weka.core.Instance;
 import weka.core.Instances;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class CompareClassifiers {
 
-    private static final String DATA_SET_NAME = "badges2"; // badges2 / credit-a-mod / credit-a
+    private static final String DATA_SET_NAME = "spambase"; // badges2 / credit-a-mod / credit-a
 
-    public CompareClassifiers() {
+    static ArrayList<Classifier> classifiers;
 
-    }
-
-    public static double roundDouble(double x, int n) {
-        String s = "#,";
-        for (int i = 0; i < n; i++) {
-            s += "#";
-        }
-        DecimalFormat twoDForm = new DecimalFormat(s);
-        return Double.parseDouble(twoDForm.format(x));
+    private static void initializeClassifiers() {
+        //classifiers that we want to compare
+        classifiers = new ArrayList<>();
+        classifiers.add(new weka.classifiers.bayes.BayesianLogisticRegression());
+        classifiers.add(new weka.classifiers.functions.Logistic());
     }
 
     public static void main(String[] args) throws Exception {
-        //classifiers that we want to compare
-        ArrayList<Classifier> classifiers = new ArrayList<>();
-        classifiers.add(new weka.classifiers.bayes.NaiveBayes());
-        classifiers.add(new weka.classifiers.functions.Logistic());
 
-        double partOfDataSet = 1.0; // part of randomized train set (0 .. 1)
-        DataProvider dataProvider = new DataProvider(DATA_SET_NAME);
-        Instances trainSet = dataProvider.getTrainSet(partOfDataSet);
-        Instances testSet = dataProvider.getTestSet();
-
-        if (trainSet.classIndex() == -1) trainSet.setClassIndex(trainSet.numAttributes() - 1);
-        if (testSet.classIndex() == -1) testSet.setClassIndex(testSet.numAttributes() - 1);
-
-        System.out.println("Data loaded and randomized:");
-        System.out.println(" - train set size: " + trainSet.numInstances());
-        System.out.println(" - test set size:  " + testSet.numInstances());
-
-        HashMap<String, Long> trainingTimes = new HashMap<>();
-        HashMap<String, Long> testingTimes = new HashMap<>();
-
-        for (Classifier classifier : classifiers) {
-            String classifierName = classifier.getClass().getSimpleName();
-            System.out.println("Training " + classifierName + "...");
-            long trainingTimeStart = System.currentTimeMillis();
-            classifier.buildClassifier(trainSet);
-            long trainingTime = System.currentTimeMillis() - trainingTimeStart;
-            System.out.println(" - training time: " + trainingTime);
-            trainingTimes.put(classifierName, trainingTime);
-        }
-
+        initializeClassifiers();
         HashMap<String, Double> loss01 = new HashMap<>();
         HashMap<String, Double> squaredError = new HashMap<>();
 
-        double sum = testSet.numInstances();
         for (Classifier classifier : classifiers) {
+
+            HashMap<Integer, Double> loss01ForParts = new HashMap<>();
+            HashMap<Integer, Double> squaredErrorForParts = new HashMap<>();
+
+            DataProvider dataProvider = new DataProvider(DATA_SET_NAME);
+            Instances testSet = dataProvider.getTestSet();
             String classifierName = classifier.getClass().getSimpleName();
-            System.out.println("Testing " + classifierName + "...");
-            long testingTimeStart = System.currentTimeMillis();
-            for (int i = 0; i < testSet.numInstances(); i++) {
-                Instance instance = testSet.instance(i);
-                int truth = (int) instance.classValue();
 
-                double[] distribution = classifier.distributionForInstance(instance);
-                int prediction = distribution[1] >= distribution[0] ? 1 : 0;
+            for (int j = 1; j < 100; j+=1) {
+                double partOfDataSet = 0.01*j; // part of randomized train set (0 .. 1)
 
-                double _loss01 = truth == prediction ? 0 : 1;
-                double _squaredError = Math.pow(1.0 - distribution[truth], 2);
+                ClassifierTrainer classifierTrainer = new ClassifierTrainer(dataProvider, partOfDataSet);
+                classifierTrainer.buildClassifier(classifier);
 
-                if (loss01.containsKey(classifierName)) {
-                    _loss01 += loss01.get(classifierName);
-                    _squaredError += squaredError.get(classifierName);
+                for (int i = 0; i < testSet.numInstances(); i++) {
+                    Instance instance = testSet.instance(i);
+                    int truth = (int) instance.classValue();
+
+                    double[] distribution = classifier.distributionForInstance(instance);
+                    int prediction = distribution[1] >= distribution[0] ? 1 : 0;
+
+                    double _loss01 = truth == prediction ? 0 : 1;
+                    double _squaredError = Math.pow(1.0 - distribution[truth], 2);
+
+                    if (loss01.containsKey(classifierName)) {
+                        _loss01 += loss01.get(classifierName);
+                        _squaredError += squaredError.get(classifierName);
+                    }
+                    loss01.put(classifierName, _loss01);
+                    squaredError.put(classifierName, _squaredError);
                 }
-                loss01.put(classifierName, _loss01);
-                squaredError.put(classifierName, _squaredError);
+                int testSetSize = testSet.numInstances();
+                loss01ForParts.put(dataProvider.getTrainSetSize(), loss01.get(classifierName)/testSetSize);
+                squaredErrorForParts.put(dataProvider.getTrainSetSize(), squaredError.get(classifierName)/testSetSize);
             }
-            long testingTime = System.currentTimeMillis() - testingTimeStart;
-            testingTimes.put(classifierName, testingTime);
-        }
-
-        System.out.println("\nRESULTS:\n");
-        for (Classifier classifier : classifiers) {
-            String classifierName = classifier.getClass().getSimpleName();
-            long trainingTime = trainingTimes.get(classifierName);
-            long testingTime = testingTimes.get(classifierName);
-            double _loss01 = loss01.get(classifierName) / sum;
-            double _squaredError = squaredError.get(classifierName) / sum;
-            System.out.println(classifierName + " :");
-            System.out.println(" - training time:  " + trainingTime);
-            System.out.println(" - testing time:   " + testingTime);
-            System.out.println(" - 0/1 loss:       " + roundDouble(_loss01, 4));
-            System.out.println(" - squared-error:  " + roundDouble(_squaredError, 4));
-            System.out.println();
+            new DataExporter(classifierName, loss01ForParts, squaredErrorForParts).print(DATA_SET_NAME+"_" + classifierName).saveToFile(DATA_SET_NAME+"_" + classifierName);
         }
     }
-
 }

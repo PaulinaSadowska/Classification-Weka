@@ -1,9 +1,11 @@
 package put.cs.idss.ml.weka.lab07;
 
 import weka.classifiers.Classifier;
+import weka.clusterers.NumberOfClustersRequestable;
 import weka.core.Attribute;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.matrix.DoubleVector;
 
 public class NaiveBayesClassifier extends Classifier {
 
@@ -41,8 +43,8 @@ public class NaiveBayesClassifier extends Classifier {
         classProbabilities = new double[numClasses];
 
         double[][] attrValueSums = new double[numClasses][data.numAttributes()];
-        means = new double[numClasses][data.numAttributes()];
-        stdDevs = new double[numClasses][data.numAttributes()];
+        means = new double[numClasses][data.numAttributes() - 1];
+        stdDevs = new double[numClasses][data.numAttributes() - 1];
 
         // remove instances with missing class
         data.deleteWithMissingClass();
@@ -140,8 +142,13 @@ public class NaiveBayesClassifier extends Classifier {
                     double stdDev = stdDevs[i][j];
                     double x = instance.value(j);
 
-                    double power = (-(Math.pow((x - mean), 2))) / (2 * Math.pow(stdDev, 2));
-                    P_X[i] *= Math.pow(Math.E, power) / (stdDev * Math.sqrt(2 * Math.PI));
+                    if (mean != 0 && stdDev != 0) {
+                        double power = (-(Math.pow((x - mean), 2))) / (2 * Math.pow(stdDev, 2));
+                        double px = Math.pow(Math.E, power) / (stdDev * Math.sqrt(2 * Math.PI));
+                        if (!Double.isNaN(px)) {
+                            P_X[i] *= px;
+                        }
+                    }
                 }
             }
             distribution[i] = P_X[i] * classProbabilities[i];
@@ -149,8 +156,9 @@ public class NaiveBayesClassifier extends Classifier {
         }
         for (int i = 0; i < numClasses; i++) {
             distribution[i] = distribution[i] / denominator;
+            if (Double.isNaN(distribution[i]))
+                throw new Exception("distribution index " + i + " is NAN");
         }
-
 
         return distribution;
     }
