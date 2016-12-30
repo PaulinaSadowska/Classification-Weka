@@ -17,7 +17,6 @@ public class ClassifierTrainer {
     }
 
     public Long buildClassifier(Classifier classifier) throws Exception {
-        String classifierName = classifier.getClass().getSimpleName();
         //System.out.println("Training " + classifierName + "...");
         long trainingTimeStart = System.currentTimeMillis();
         classifier.buildClassifier(trainSet);

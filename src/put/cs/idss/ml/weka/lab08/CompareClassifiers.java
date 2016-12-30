@@ -1,6 +1,9 @@
 package put.cs.idss.ml.weka.lab08;
 
 import weka.classifiers.Classifier;
+import weka.classifiers.bayes.BayesianLogisticRegression;
+import weka.classifiers.bayes.NaiveBayes;
+import weka.classifiers.functions.Logistic;
 import weka.core.Instance;
 import weka.core.Instances;
 
@@ -9,15 +12,15 @@ import java.util.HashMap;
 
 public class CompareClassifiers {
 
-    private static final String DATA_SET_NAME = "badges2"; // badges2 / credit-a-mod / credit-a
+    private static final String DATA_SET_NAME = "spambase"; // badges2 / credit-a-mod / credit-a
 
     static ArrayList<Classifier> classifiers;
 
     private static void initializeClassifiers() {
-        //classifiers that we want to compare
+        //classifiers that we want to comparezzzzz
         classifiers = new ArrayList<>();
-        classifiers.add(new weka.classifiers.bayes.BayesianLogisticRegression());
-        classifiers.add(new weka.classifiers.functions.Logistic());
+        classifiers.add(new NaiveBayes());
+        classifiers.add(new Logistic());
     }
 
     public static void main(String[] args) throws Exception {
